@@ -61,4 +61,18 @@ export class CouponController {
 
     return res.json(coupons);
   };
+
+  delete = async (req: Request, res: Response) => {
+    const { couponId } = req.params;
+
+    const deletedCoupon = await couponModel.findByIdAndDelete(couponId);
+
+    if (!deletedCoupon) {
+      throw createHttpError(404, "Coupon not found");
+    }
+
+    return res.json({
+      message: "Coupon deleted successfully",
+    });
+  };
 }

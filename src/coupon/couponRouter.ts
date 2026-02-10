@@ -15,4 +15,10 @@ router.get("/:couponId", authenticate, asyncWrapper(couponController.getOne));
 
 router.get("/", authenticate, asyncWrapper(couponController.getAll));
 
+router.delete(
+  "/:couponId",
+  authenticate,
+  asyncWrapper(couponController.delete),
+);
+
 export default router;
