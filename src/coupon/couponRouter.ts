@@ -9,4 +9,6 @@ const couponController = new CouponController();
 
 router.post("/", authenticate, asyncWrapper(couponController.create));
 
+router.patch("/:couponId", authenticate, asyncWrapper(couponController.update));
+
 export default router;
