@@ -11,4 +11,6 @@ router.post("/", authenticate, asyncWrapper(couponController.create));
 
 router.patch("/:couponId", authenticate, asyncWrapper(couponController.update));
 
+router.get("/:couponId", authenticate, asyncWrapper(couponController.getOne));
+
 export default router;

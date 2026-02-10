@@ -44,5 +44,15 @@ export class CouponController {
     return res.json(updatedCoupon);
   };
 
-  
+  getOne = async (req: Request, res: Response) => {
+    const { couponId } = req.params;
+
+    const coupon = await couponModel.findById(couponId);
+
+    if (!coupon) {
+      throw createHttpError(404, "Coupon not found");
+    }
+
+    return res.json(coupon);
+  };
 }
