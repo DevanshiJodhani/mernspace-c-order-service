@@ -55,4 +55,10 @@ export class CouponController {
 
     return res.json(coupon);
   };
+
+  getAll = async (req: Request, res: Response) => {
+    const coupons = await couponModel.find();
+
+    return res.json(coupons);
+  };
 }
