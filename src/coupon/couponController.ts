@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import couponModel from "./couponModel";
 import createHttpError from "http-errors";
 
@@ -17,7 +17,7 @@ export class CouponController {
     return res.json(coupon);
   };
 
-  update = async (req: Request, res: Response) => {
+  update = async (req: Request, res: Response, next: NextFunction) => {
     const { couponId } = req.params;
     const { title, code, validUpto, discount } = req.body;
 
@@ -38,19 +38,21 @@ export class CouponController {
     );
 
     if (!updatedCoupon) {
-      throw createHttpError(404, "Coupon not found");
+      const error = createHttpError(400, "coupon not found");
+      next(error);
     }
 
     return res.json(updatedCoupon);
   };
 
-  getOne = async (req: Request, res: Response) => {
+  getOne = async (req: Request, res: Response, next: NextFunction) => {
     const { couponId } = req.params;
 
     const coupon = await couponModel.findById(couponId);
 
     if (!coupon) {
-      throw createHttpError(404, "Coupon not found");
+      const error = createHttpError(400, "coupon not found");
+      next(error);
     }
 
     return res.json(coupon);
@@ -62,17 +64,47 @@ export class CouponController {
     return res.json(coupons);
   };
 
-  delete = async (req: Request, res: Response) => {
+  delete = async (req: Request, res: Response, next: NextFunction) => {
     const { couponId } = req.params;
 
     const deletedCoupon = await couponModel.findByIdAndDelete(couponId);
 
     if (!deletedCoupon) {
-      throw createHttpError(404, "Coupon not found");
+      const error = createHttpError(400, "coupon not found");
+      next(error);
     }
 
     return res.json({
       message: "Coupon deleted successfully",
+    });
+  };
+
+  verify = async (req: Request, res: Response, next: NextFunction) => {
+    const { code, tenantId } = req.body;
+
+    //  todo: request validation
+
+    const coupon = await couponModel.findOne({ code, tenantId });
+
+    if (!coupon) {
+      const error = createHttpError(400, "coupon not found");
+      next(error);
+    }
+
+    // validate expiry
+    const currentDate = new Date();
+    const couponDate = new Date(coupon.validUpto);
+
+    if (currentDate <= couponDate) {
+      return res.json({
+        valid: true,
+        discount: coupon.discount,
+      });
+    }
+
+    return res.json({
+      valid: false,
+      discount: 0,
     });
   };
 }
