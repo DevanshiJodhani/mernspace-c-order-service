@@ -13,8 +13,11 @@ import { OrderStatus, PaymentStatus } from "./orderTypes";
 import idempotencyModel from "../idempotency/idempotencyModel";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
+import { PaymentGW } from "../payment/paymentTypes";
 
 export class OrderController {
+  constructor(private paymentGw: PaymentGW) {}
+
   create = async (req: Request, res: Response, next: NextFunction) => {
     const {
       cart,
@@ -97,7 +100,15 @@ export class OrderController {
       }
     }
 
-    return res.json({ newOrder: newOrder });
+    const session = await this.paymentGw.createSession({
+      amount: finalTotal,
+      orderId: newOrder[0]._id.toString(),
+      tenantId: tenantId,
+      currency: "inr",
+      idempotenencyKey: idempotencyKey as string,
+    });
+
+    return res.json({ paymentUrl: session.paymentUrl });
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
