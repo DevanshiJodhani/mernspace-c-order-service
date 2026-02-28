@@ -8,3 +8,5 @@ database:
 frontend:
   clientUI: http://localhost:3000
   adminUI: http://localhost:5173
+kafka:
+  broker: localhost:9092
