@@ -9,6 +9,7 @@ import productCacheModel from "../productCache/productCacheModel";
 import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/couponModel";
 
+
 export class OrderController {
   create = async (req: Request, res: Response) => {
     // todo: validate request data.
@@ -36,7 +37,11 @@ export class OrderController {
 
     const taxes = Math.round((priceAfterDiscount * TAXES_PERCENT) / 100);
 
-    return res.json({ taxes: taxes });
+    const DELIVERY_CHARGES = 100;
+
+    const finalTotal = priceAfterDiscount + taxes + DELIVERY_CHARGES;
+
+    return res.json({ finalTotal: finalTotal });
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
