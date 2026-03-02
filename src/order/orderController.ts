@@ -3,6 +3,7 @@ import { Request as AuthRequest } from "express-jwt";
 import {
   CartItem,
   ProductPricingCache,
+  ROLES,
   Topping,
   ToppingPriceCache,
 } from "../types";
@@ -183,6 +184,44 @@ export class OrderController {
     }
 
     return next(createHttpError(403, "Operation not permitted."));
+  };
+
+  getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { role, tenant: userTenantId } = req.auth;
+
+    const tenantId = req.query.tenantId;
+
+    if (role === ROLES.CUSTOMER) {
+      return next(createHttpError(403, "Not allowed."));
+    }
+
+    if (role === ROLES.ADMIN) {
+      const filter = {};
+
+      if (tenantId) {
+        filter["tenantId"] = tenantId;
+      }
+
+      // todo: VERY IMPORTANT. add pagination.
+      const orders = await orderModel
+        .find(filter, {}, { sort: { createdAt: -1 } })
+        .populate("customerId")
+        .exec();
+
+      // todo: add logger
+      return res.json(orders);
+    }
+
+    if (role === ROLES.MANAGER) {
+      const orders = await orderModel
+        .find({ tenantId: userTenantId }, {}, { sort: { createdAt: -1 } })
+        .populate("customerId")
+        .exec();
+
+      return res.json(orders);
+    }
+
+    return next(createHttpError(403, "Not allowed."));
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
