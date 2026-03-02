@@ -11,7 +11,12 @@ import productCacheModel from "../productCache/productCacheModel";
 import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/couponModel";
 import orderModel from "./orderModel";
-import { OrderStatus, PaymentMode, PaymentStatus } from "./orderTypes";
+import {
+  OrderEvents,
+  OrderStatus,
+  PaymentMode,
+  PaymentStatus,
+} from "./orderTypes";
 import idempotencyModel from "../idempotency/idempotencyModel";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
@@ -116,7 +121,16 @@ export class OrderController {
         idempotenencyKey: idempotencyKey as string,
       });
 
-      await this.broker.sendMessage("order", JSON.stringify(newOrder));
+      const brokerMessage = {
+        event_type: OrderEvents.ORDER_CREATE,
+        data: newOrder[0],
+      };
+
+      await this.broker.sendMessage(
+        "order",
+        JSON.stringify(brokerMessage),
+        newOrder[0]._id.toString(),
+      );
 
       return res.json({ paymentUrl: session.paymentUrl });
     }
@@ -219,6 +233,55 @@ export class OrderController {
         .exec();
 
       return res.json(orders);
+    }
+
+    return next(createHttpError(403, "Not allowed."));
+  };
+
+  changeStatus = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { role, tenant: tenantId } = req.auth;
+    const orderId = req.params.orderId;
+
+    if (role === ROLES.MANAGER || ROLES.ADMIN) {
+      const order = await orderModel.findOne({ _id: orderId });
+      if (!order) {
+        return next(createHttpError(400, "Order not found."));
+      }
+
+      const isMyRestaurantOrder = order.tenantId === tenantId;
+
+      if (role === ROLES.MANAGER && !isMyRestaurantOrder) {
+        return next(createHttpError(403, "Not allowed."));
+      }
+
+      const updatedOrder = await orderModel.findOneAndUpdate(
+        { _id: orderId },
+        // todo: req.body.status <- Put proper validation.
+        { orderStatus: req.body.status },
+        { new: true },
+      );
+
+      const customer = await customerModel.findOne({
+        _id: updatedOrder.customerId,
+      });
+
+      // todo: add logging
+      const brokerMessage = {
+        event_type: OrderEvents.ORDER_STATUS_UPDATE,
+        data: { ...updatedOrder.toObject(), customerId: customer },
+      };
+
+      await this.broker.sendMessage(
+        "order",
+        JSON.stringify(brokerMessage),
+        updatedOrder._id.toString(),
+      );
+
+      return res.json({ _id: updatedOrder._id });
     }
 
     return next(createHttpError(403, "Not allowed."));

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import Stripe from "stripe";
 import config from "config";
 import orderModel from "../order/orderModel";
-import { PaymentStatus } from "../order/orderTypes";
+import { OrderEvents, PaymentStatus } from "../order/orderTypes";
 import { MessageBroker } from "../types/broker";
 import { PaymentGW } from "./paymentTypes";
 
@@ -45,10 +45,19 @@ export class PaymentController {
           { new: true },
         );
 
-        await this.broker.sendMessage("order", JSON.stringify(updatedOrder));
+        const brokerMessage = {
+          event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
+          data: updatedOrder,
+        };
+
+        await this.broker.sendMessage(
+          "order",
+          JSON.stringify(brokerMessage),
+          updatedOrder._id.toString(),
+        );
       }
     }
 
-    return res.json({ received: true });
+    return res.json({ success: true });
   };
 }
