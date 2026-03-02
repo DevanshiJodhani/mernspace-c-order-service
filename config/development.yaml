@@ -10,4 +10,3 @@ frontend:
   adminUI: http://localhost:5173
 kafka:
   broker: localhost:9092
-
