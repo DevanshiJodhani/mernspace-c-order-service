@@ -156,7 +156,7 @@ export class OrderController {
 
     const totalPrice = cart.reduce((acc, curr) => {
       const cachedProductPrice = productPricings.find(
-        (product) => product.productId === curr._id,
+        (product) => product.productId.toString() === curr._id.toString(),
       );
 
       return (
@@ -173,6 +173,14 @@ export class OrderController {
     cachedProductPrice: ProductPricingCache,
     toppingsPricings: ToppingPriceCache[],
   ) => {
+    if (!cachedProductPrice) {
+      throw new Error(`Product not found in cache for id ${item._id}`);
+    }
+
+    if (!item.chosenConfiguration?.priceConfiguration) {
+      throw new Error(`priceConfiguration missing for product ${item._id}`);
+    }
+
     const toppingsTotal = item.chosenConfiguration.selectedToppings.reduce(
       (acc, curr) => {
         return acc + this.getCurrentToppingPrice(curr, toppingsPricings);
@@ -183,10 +191,27 @@ export class OrderController {
     const productTotal = Object.entries(
       item.chosenConfiguration.priceConfiguration,
     ).reduce((acc, [key, value]) => {
-      const price =
-        cachedProductPrice.priceConfiguration[key].availableOptions[value];
+      const dbConfig = cachedProductPrice.priceConfiguration[key];
+
+      if (!dbConfig) {
+        throw new Error(
+          `Configuration "${key}" not found for product ${item._id}`,
+        );
+      }
+
+      const price = dbConfig.availableOptions[value];
+
+      if (price === undefined) {
+        throw new Error(
+          `Option "${value}" not found under "${key}" for product ${item._id}`,
+        );
+      }
+
       return acc + price;
     }, 0);
+
+    console.log("Cart config:", item.chosenConfiguration.priceConfiguration);
+    console.log("DB config:", cachedProductPrice.priceConfiguration);
 
     return productTotal + toppingsTotal;
   };
