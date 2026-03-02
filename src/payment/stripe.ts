@@ -56,7 +56,15 @@ export class StripeGW implements PaymentGW {
     };
   }
 
-  async getSession() {
-    return null;
+  async getSession(id: string) {
+    const session = await this.stripe.checkout.sessions.retrieve(id);
+
+    return {
+      id: session.id,
+      metadata: {
+        orderId: session.metadata?.orderId as string,
+      },
+      paymentStatus: session.payment_status,
+    };
   }
 }

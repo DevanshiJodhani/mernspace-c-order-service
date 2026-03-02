@@ -21,6 +21,9 @@ app.use(
     credentials: true,
   }),
 );
+
+app.use("/payments/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
