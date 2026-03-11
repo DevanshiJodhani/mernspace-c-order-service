@@ -3,7 +3,7 @@ import { Order, OrderStatus, PaymentMode, PaymentStatus } from "./orderTypes";
 import { CartItem } from "../types";
 
 const toppingSchema = new mongoose.Schema({
-  id: {
+  _id: {
     type: Schema.Types.ObjectId,
     required: true,
   },

@@ -5,8 +5,6 @@ export const handleProductUpdate = async (value: string) => {
   // todo: wrap this parsing in try catch
   const product: ProductMessage = JSON.parse(value);
 
-  console.log("Product update received:", product);
-
   return await productCacheModel.updateOne(
     {
       productId: product.data.id,

@@ -170,7 +170,7 @@ export class OrderController {
 
     const order = await orderModel
       .findOne({ _id: orderId })
-      .populate("customerId", "firstName lastName"); // 🔥 IMPORTANT
+      .populate("customerId", "firstName lastName"); 
 
     if (!order) {
       return next(createHttpError(400, "Order does not exists."));
@@ -304,7 +304,7 @@ export class OrderController {
     const cartToppingIds = cart.reduce((acc, item) => {
       const flatToppings = item.chosenConfiguration.selectedToppings.flat();
 
-      return [...acc, ...flatToppings.map((topping) => topping.id)];
+      return [...acc, ...flatToppings.map((topping) => topping._id)];
     }, []);
 
     // todo: What will happen if topping does not exists in the cache
@@ -400,7 +400,7 @@ export class OrderController {
     toppingPricings: ToppingPriceCache[],
   ) => {
     const currentTopping = toppingPricings.find(
-      (current) => topping.id === current.toppingId,
+      (current) => topping._id === current.toppingId,
     );
 
     if (!currentTopping) {
