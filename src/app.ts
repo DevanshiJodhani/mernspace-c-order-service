@@ -30,6 +30,11 @@ app.get("/", (req: Request, res: Response) => {
   res.json({ message: "Hello from order service service!" });
 });
 
+// Health check route
+app.get('/health', (req, res) => {
+  res.status(200).send('Order service running perfectly')
+})
+
 app.use("/customer", customerRouter);
 app.use("/coupons", couponRouter);
 app.use("/orders", orderRouter);
