@@ -25,37 +25,44 @@ export class PaymentController {
       event = this.stripe.webhooks.constructEvent(
         req.body,
         sig,
-        config.get("stripe.webhookSecret"), // 👈 USE WEBHOOK SECRET HERE
+        config.get("stripe.webhookSecret"),
       );
     } catch (err) {
       console.error("Webhook signature verification failed:", err);
       return res.status(400).send("Webhook Error");
     }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
-      if (session.payment_status === "paid") {
-        const updatedOrder = await orderModel.findByIdAndUpdate(
-          session.metadata?.orderId,
-          {
-            paymentStatus: PaymentStatus.PAID,
-            paymentId: session.payment_intent,
-          },
-          { new: true },
-        );
+      const orderId = paymentIntent.metadata?.orderId;
 
-        const brokerMessage = {
-          event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
-          data: updatedOrder,
-        };
+      console.log("ORDER ID FROM WEBHOOK:", orderId);
 
-        await this.broker.sendMessage(
-          "order",
-          JSON.stringify(brokerMessage),
-          updatedOrder._id.toString(),
-        );
+      if (!orderId) {
+        console.error("OrderId missing in metadata");
+        return res.sendStatus(200);
       }
+
+      const updatedOrder = await orderModel.findByIdAndUpdate(
+        orderId,
+        {
+          paymentStatus: PaymentStatus.PAID,
+          paymentId: paymentIntent.id,
+        },
+        { new: true },
+      );
+
+      const brokerMessage = {
+        event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
+        data: updatedOrder,
+      };
+
+      await this.broker.sendMessage(
+        "order",
+        JSON.stringify(brokerMessage),
+        updatedOrder._id.toString(),
+      );
     }
 
     return res.json({ success: true });

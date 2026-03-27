@@ -56,9 +56,7 @@ export class OrderController {
 
     const priceAfterDiscount = totalPrice - discountAmount;
 
-    // todo: May be store in db for each tenant.
     const TAXES_PERCENT = 18;
-
     const taxes = Math.round((priceAfterDiscount * TAXES_PERCENT) / 100);
 
     const DELIVERY_CHARGES = 100;
@@ -90,7 +88,11 @@ export class OrderController {
               total: finalTotal,
               paymentMode,
               orderStatus: OrderStatus.RECEIVED,
-              paymentStatus: PaymentStatus.PENDING,
+              paymentStatus:
+                paymentMode === PaymentMode.CASH
+                  ? PaymentStatus.PAID
+                  : PaymentStatus.PENDING,
+              paymentId: paymentMode === PaymentMode.CASH ? "CASH" : null,
             },
           ],
           { session },
@@ -105,7 +107,6 @@ export class OrderController {
       } catch (err) {
         await session.abortTransaction();
         await session.endSession();
-
         return next(createHttpError(500, err.message));
       } finally {
         await session.endSession();
@@ -135,9 +136,17 @@ export class OrderController {
       return res.json({ paymentUrl: session.paymentUrl });
     }
 
-    await this.broker.sendMessage("order", JSON.stringify(newOrder));
+    const brokerMessage = {
+      event_type: OrderEvents.ORDER_CREATE,
+      data: newOrder[0],
+    };
 
-    // todo: Update order document -> paymentId -> sessionId
+    await this.broker.sendMessage(
+      "order",
+      JSON.stringify(brokerMessage),
+      newOrder[0]._id.toString(),
+    );
+
     return res.json({ paymentUrl: null });
   };
 
@@ -170,7 +179,7 @@ export class OrderController {
 
     const order = await orderModel
       .findOne({ _id: orderId })
-      .populate("customerId", "firstName lastName"); 
+      .populate("customerId", "firstName lastName");
 
     if (!order) {
       return next(createHttpError(400, "Order does not exists."));
@@ -246,7 +255,7 @@ export class OrderController {
     const { role, tenant: tenantId } = req.auth;
     const orderId = req.params.orderId;
 
-    if (role === ROLES.MANAGER || ROLES.ADMIN) {
+    if (role === ROLES.MANAGER || role === ROLES.ADMIN) {
       const order = await orderModel.findOne({ _id: orderId });
       if (!order) {
         return next(createHttpError(400, "Order not found."));

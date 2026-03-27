@@ -15,6 +15,11 @@ export class StripeGW implements PaymentGW {
         metadata: {
           orderId: options.orderId,
         },
+        payment_intent_data: {
+          metadata: {
+            orderId: options.orderId,
+          },
+        },
         billing_address_collection: "required",
         // todo: In Future, Capture structured address from customer
         // payment_intent_data: {
