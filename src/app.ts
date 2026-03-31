@@ -9,6 +9,9 @@ import orderRouter from "./order/orderRouter";
 import paymentRouter from "./payment/paymentRouter";
 
 const app = express();
+
+app.set("trust proxy", 1);
+
 app.use(cookieParser());
 
 const ALLOWED_DOMAINS = [
